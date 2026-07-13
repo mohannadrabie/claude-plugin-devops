@@ -1,0 +1,21 @@
+{
+  "//": "Per-project config for the devops plugin. Copy to project root as .governance.json (/devops:init does this).",
+  "allowedWriteAccounts": ["111111111111"],
+  "allowedWriteProfiles": ["sandbox", "dev"],
+  "allowedWriteRoles": ["arn:aws:iam::111111111111:role/DevOpsRole", "arn:aws:iam::222222222222:role/SandboxRole"],
+  "adr": {
+    "dir": "adr/devops",
+    "autoSync": false,
+    "upstreamBranch": "main",
+    "comment": "dir: this plugin's ADR folder inside the pulled ADR repo (e.g. adr/devops); the cache reporter scans it recursively. autoSync: DEFAULT OFF. When true, `docs/adr-cache.mjs --ensure` fast-forwards the ADR submodule to upstreamBranch BEFORE fingerprinting (fetch + `git merge --ff-only` — never rewrites the branch ref, so unpushed local commits are never orphaned; a diverged branch fails the FF and falls back to on-disk ADRs; skipped entirely when $CI is set, so headless/CI runs stay reproducible). Leave OFF to advance ADRs only when you deliberately bump the submodule pointer (recommended — an auto-advance dirties the superproject working tree, which collides with the clean-tree DoD). upstreamBranch: branch to fast-forward from."
+  },
+  "protected": [
+    { "paths": "modules/(iam|network|security)/", "requires": "security", "gateDays": 7 },
+    { "paths": "(^|/)modules/(data|.*database.*)/", "requires": "redteam", "gateDays": 7 },
+    { "//": "Consumer-facing self-service ADR: templates, authoring flow, onboarding. One consumer-reviewer report (usability + decision-quality) clears these.",
+      "paths": "(^|/)(templates/adr[^/]*|app/(onboarding|selfservice|adr-authoring))/", "requires": "consumer", "gateDays": 14 }
+  ],
+  "blockedCommands": [
+    { "pattern": "kubectl\\s+delete\\s+namespace", "message": "Namespace deletion is human-only." }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "engineer",
+  "version": "1.0.0",
+  "description": "Software-engineering governance team-in-a-box: an intake-refiner that extracts testable requirements from a story/requirements doc/project without inventing them; a Manager (Alakazam) that conducts the whole delivery loop (intake → plan → build → review → ship-check → audit → merge-handoff) as the single voice to the human; a story-implementer that decomposes projects into ordered stories then plans and builds; a debugger; code, api-contract, data-model, application-security (appsec), performance, and architecture reviewers; a red team; and an ADR-amender. Risk-tier decided once and persisted, ADR token-cache with a live savings line, deterministic hooks (protected paths behind review reports, human-only release/destructive commands) plus opt-in team gates, audited auditors, and an anti-kafka charter. Per-project config: .governance.json.",
+  "author": {
+    "name": "Mo"
+  },
+  "keywords": [
+    "engineering",
+    "software",
+    "governance",
+    "code-review",
+    "security",
+    "appsec",
+    "api",
+    "performance",
+    "adr",
+    "orchestration",
+    "review",
+    "debugger",
+    "intake",
+    "planning"
+  ]
+}

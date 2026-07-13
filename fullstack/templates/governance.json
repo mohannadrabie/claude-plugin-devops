@@ -1,0 +1,33 @@
+{
+  "//": "Per-project config for the fullstack plugin (infra + app). Copy to project root as .governance.json (/fullstack:init does this).",
+  "allowedWriteAccounts": [],
+  "allowedWriteProfiles": [],
+  "allowedWriteRoles": [],
+  "adr": {
+    "dir": ["adr/devops", "adr/engineer"],
+    "autoSync": false,
+    "upstreamBranch": "main",
+    "comment": "dir is an ARRAY here: this plugin reads BOTH domains' folders inside the pulled ADR repo. The cache reporter scans each recursively. autoSync: DEFAULT OFF. When true, `docs/adr-cache.mjs --ensure` fast-forwards the ADR submodule to upstreamBranch BEFORE fingerprinting (fetch + `git merge --ff-only` — never rewrites the branch ref, so unpushed local commits are never orphaned; a diverged branch fails the FF and falls back to on-disk ADRs; skipped entirely when $CI is set, so headless/CI runs stay reproducible). Leave OFF to advance ADRs only when you deliberately bump the submodule pointer (recommended — an auto-advance dirties the superproject working tree, which collides with the clean-tree DoD). upstreamBranch: branch to fast-forward from. allowedWrite* only gate `aws` commands."
+  },
+  "protected": [
+    { "//": "Infra: IAM/network/security modules — infra security-reviewer report.",
+      "paths": "modules/(iam|network|security)/", "requires": "security", "gateDays": 7 },
+    { "//": "Infra: data/database modules — red team report.",
+      "paths": "(^|/)modules/(data|.*database.*)/", "requires": "redteam", "gateDays": 7 },
+    { "//": "Infra: self-service ADR templates/flows — consumer-reviewer report.",
+      "paths": "(^|/)(templates/adr[^/]*|app/(onboarding|selfservice|adr-authoring))/", "requires": "consumer", "gateDays": 14 },
+    { "//": "App: auth/authz — appsec report.",
+      "paths": "(^|/)(auth|authz|authentication|authorization|login|session|sessions|rbac|permissions)/", "requires": "appsec", "gateDays": 7 },
+    { "//": "App: payments/billing — appsec report.",
+      "paths": "(^|/)(payment|payments|billing|checkout|wallet|ledger)/", "requires": "appsec", "gateDays": 7 },
+    { "//": "App: schema/migrations — data-reviewer report.",
+      "paths": "(^|/)(migrations?|migrate|schema)/|.*\\.(sql|prisma)$", "requires": "data", "gateDays": 7 },
+    { "//": "App: public API surface — api-reviewer report.",
+      "paths": "(^|/)(api|openapi|proto|graphql|contracts)/|.*\\.proto$|openapi.*\\.ya?ml$", "requires": "api", "gateDays": 7 }
+  ],
+  "blockedCommands": [
+    { "pattern": "kubectl\\s+delete\\s+namespace", "message": "Namespace deletion is human-only." },
+    { "pattern": "npm\\s+publish|yarn\\s+publish|pnpm\\s+publish", "message": "Publishing a package is a human-only release step." },
+    { "pattern": "\\b(drop|truncate)\\s+(table|database|schema)\\b", "message": "Destructive SQL (DROP/TRUNCATE) is human-only." }
+  ]
+}

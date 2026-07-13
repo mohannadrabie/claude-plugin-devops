@@ -1,0 +1,26 @@
+{
+  "//": "Per-project config for the engineer plugin. Copy to project root as .governance.json (/engineer:init does this).",
+  "allowedWriteAccounts": [],
+  "allowedWriteProfiles": [],
+  "allowedWriteRoles": [],
+  "adr": {
+    "dir": "adr/engineer",
+    "autoSync": false,
+    "upstreamBranch": "main",
+    "comment": "dir: this plugin's ADR folder inside the pulled ADR repo (e.g. adr/engineer); the cache reporter scans it recursively. autoSync: DEFAULT OFF. When true, `docs/adr-cache.mjs --ensure` fast-forwards the ADR submodule to upstreamBranch BEFORE fingerprinting (fetch + `git merge --ff-only` — never rewrites the branch ref, so unpushed local commits are never orphaned; a diverged branch fails the FF and falls back to on-disk ADRs; skipped entirely when $CI is set, so headless/CI runs stay reproducible). Leave OFF to advance ADRs only when you deliberately bump the submodule pointer (recommended — an auto-advance dirties the superproject working tree, which collides with the clean-tree DoD). upstreamBranch: branch to fast-forward from. allowedWrite* only gate `aws` commands (usually empty for app repos)."
+  },
+  "protected": [
+    { "//": "Auth/authz code — an appsec report unlocks it.",
+      "paths": "(^|/)(auth|authz|authentication|authorization|login|session|sessions|rbac|permissions)/", "requires": "appsec", "gateDays": 7 },
+    { "//": "Payments/billing — appsec.",
+      "paths": "(^|/)(payment|payments|billing|checkout|wallet|ledger)/", "requires": "appsec", "gateDays": 7 },
+    { "//": "Schema changes & migrations — a data-reviewer report unlocks it.",
+      "paths": "(^|/)(migrations?|migrate|schema)/|.*\\.(sql|prisma)$", "requires": "data", "gateDays": 7 },
+    { "//": "Public API surface / contracts — an api-reviewer report unlocks it.",
+      "paths": "(^|/)(api|openapi|proto|graphql|contracts)/|.*\\.proto$|openapi.*\\.ya?ml$", "requires": "api", "gateDays": 7 }
+  ],
+  "blockedCommands": [
+    { "pattern": "npm\\s+publish|yarn\\s+publish|pnpm\\s+publish", "message": "Publishing a package is a human-only release step." },
+    { "pattern": "\\b(drop|truncate)\\s+(table|database|schema)\\b", "message": "Destructive SQL (DROP/TRUNCATE) is human-only." }
+  ]
+}

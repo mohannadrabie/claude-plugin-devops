@@ -1,0 +1,17 @@
+{
+  "//": "Working state for the current change. Written by /story (and /ship), read by /review and /ship-check so the risk tier and reviewer set are decided ONCE. Safe to delete; commands regenerate it. Not committed with the change unless you want the decision trail in the PR.",
+  "scope": "",
+  "tier": "",
+  "tierJustification": "",
+  "requiredReviewers": [],
+  "protectedPathsTouched": [],
+  "adrCatalog": {
+    "//": "ADR catalog discovered by story-implementer, reused by reviewers to avoid re-reading. version = ADR fingerprint (submodule HEAD, else git hash-object of ADR files, else no-adr); reviewers reuse the catalog only when their recomputed fingerprint matches this. Each adrs entry: {id, title, path, applicableTo: [], constraints: {}}",
+    "version": "",
+    "discoveredAt": "",
+    "location": "",
+    "adrs": []
+  },
+  "updatedBy": "",
+  "updatedAt": ""
+}

@@ -1,0 +1,23 @@
+{
+  "name": "governance",
+  "owner": {
+    "name": "Mo"
+  },
+  "plugins": [
+    {
+      "name": "devops",
+      "source": "./devops",
+      "description": "DevOps/IaC governance team, Manager-orchestrated: an intake-refiner that extracts requirements without inventing them; a Manager (Alakazam) that conducts the whole loop (intake → plan → build → review → ship-check → audit → merge-handoff) and is the single voice to you; a story-implementer that decomposes projects then builds; a debugger; code/architecture/network/security reviewers, a red team, a consumer-reviewer, and an ADR-amender. AWS write-whitelist + protected-path hooks, ADR token-cache with a live savings line, audited auditors — agile, not kafkaesque."
+    },
+    {
+      "name": "engineer",
+      "source": "./engineer",
+      "description": "Software-engineering governance team, Manager-orchestrated (sibling of devops sharing the same core): intake-refiner, Manager (Alakazam) conducting the full loop as your single voice, story-implementer, debugger; code, api-contract, data-model, application-security (appsec), performance, and architecture reviewers, a red team, and an ADR-amender. Protected-path hooks (auth/payments/migrations/API) + human-only release/destructive-command gates, ADR token-cache with a live savings line, audited auditors — agile, not kafkaesque."
+    },
+    {
+      "name": "fullstack",
+      "source": "./fullstack",
+      "description": "Full-stack governance — the UNION of the devops and engineer rosters under one Manager. For repos that hold both infrastructure and application code: the Manager (Alakazam) conducts the whole loop and routes each change to the right reviewers across BOTH domains by what it touches — network/infra-security/architecture/consumer and appsec/api/data/performance, plus shared code, red team, and ADR-amender. Hooks for both worlds, ADR token-cache reading both domain folders, audited auditors — agile, not kafkaesque."
+    }
+  ]
+}
