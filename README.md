@@ -8,7 +8,7 @@ A `governance` marketplace hosting **three plugins** that share one Manager-orch
 | **engineer** | application software | api-contract, data-model, appsec, performance |
 | **fullstack** | repos with **both** | the **union** — Manager routes each change across both rosters by what it touches |
 
-All give you: a Manager (Alakazam) that conducts the whole loop and is the single voice to you, a story-implementer, a debugger, a shared code-reviewer + red team + architecture-reviewer + ADR-amender, risk tiers decided once, and an ADR token-cache with a live savings line. This README documents **devops** in detail; **engineer** and **fullstack** mirror it with the reviewer roster and protected paths swapped/combined (see [Engineer plugin](#engineer-plugin)).
+All give you: a Manager (Alakazam) that conducts the whole loop and is the single voice to you, a story-implementer, a debugger, a shared code-reviewer + fullspectrum-reviewer + red team + architecture-reviewer + ADR-amender, risk tiers decided once, and an ADR token-cache with a live savings line. This README documents **devops** in detail; **engineer** and **fullstack** mirror it with the reviewer roster and protected paths swapped/combined (see [Engineer plugin](#engineer-plugin)).
 
 ---
 
@@ -63,7 +63,7 @@ The **Manager (Alakazam) conducts the whole loop** — it invokes each specialis
 1. **Intake** (Xatu) — is the story clear? Asks questions if vague.
 2. **Plan** (Machamp) — criteria, ADRs, risk tier (set once). Stops for your approval.
 3. **Build** (Machamp; Ditto if it breaks) — implements to plan, runs real checks.
-4. **Review** (the tier's reviewers, in parallel) — the Manager collects verdicts and synthesizes.
+4. **Review** (the tier's reviewers, plus the standing fullspectrum-reviewer, in parallel) — the Manager collects verdicts and synthesizes.
 5. **Ship-check** — real fmt/validate/lint/policy/plan, fresh reports, clean tree.
 6. **Audit the run** — the Manager verifies every agent actually did its job (dated reports with evidence, checks really ran, ADR checks happened) before handing off.
 7. **Manager Summary + merge handoff** — the headline you read first; merge/apply stays human-only.
@@ -128,10 +128,10 @@ The plugin scales ceremony to risk:
 | Tier | Examples | Review |
 |------|----------|--------|
 | **TRIVIAL** | Docs, comments | Tests pass → ship |
-| **STANDARD** | Most code | One domain reviewer |
-| **CRITICAL** | IAM, network, prod | Red team + domain reviewer |
+| **STANDARD** | Most code | One domain reviewer + fullspectrum-reviewer |
+| **CRITICAL** | IAM, network, prod | Red team + domain reviewer + fullspectrum-reviewer |
 
-Tier decided once by `/devops:story`, reused everywhere.
+Tier decided once by `/devops:story`, reused everywhere. `fullspectrum-reviewer` is a standing pass on every tier above TRIVIAL — it doesn't count against the "never more than two reviewers" cap (it's the cross-domain seam-check, not a domain pick).
 
 ---
 
@@ -142,7 +142,7 @@ The reviewer **always does a complete review** of the diff and writes a full rep
 - **Receipts, not re-reads.** Every reviewer ends its turn with a compact `RECEIPT:` block — a verdict, a **complete terse list of every finding** (`[ISSUE]`/`[SUSPICION]`/`[CLEAN]`, each issue tagged `[HIGH|MED|LOW]`), and a `counts` checksum. The Manager audits from the receipt instead of reopening the full report at every narration and every stage.
 - **The cheap path only greenlights.** On STANDARD tier the Manager trusts a clean receipt — but any red flag (checksum mismatch, non-clean verdict, a `[HIGH]` or `[SUSPICION]`, an out-of-lane ADR hit) forces an immediate full read. A blocker or rework is **never** declared from a receipt; only after reading the evidence.
 - **Audit depth scales with risk.** CRITICAL-tier runs full-read every report immediately — the blast radius warrants it.
-- **Nothing merges unread.** Before SHIPPABLE, a **pre-merge full-read gate** (`/ship-check` + ship stage 5.5) reads in full every report that was only receipt-trusted, plus every decision touched or archived that run. So the merge — the least reversible moment — always rests on a complete read, catching anything a receipt couldn't.
+- **No agent-driven merge ships unread.** `guard.mjs` blocks the agent from running `gh pr merge` / `git merge` / a push to the default branch outright — same absolute block as `terraform apply` — so the agent can never merge without a human in the loop. Before that human runs it, a **pre-merge full-read gate** (`/ship-check` + ship stage 5.5) reads in full every report that was only receipt-trusted, plus every decision touched or archived that run, and persists the pass/fail evidence to `docs/reviews/`. What this can't do: stop a human from merging directly in their own terminal or on GitHub's web UI, outside any session — a hook only sees what the agent does. If you need the guarantee to hold there too, wire up a branch-protection required-status-check in CI that re-runs the equivalent checks; that's outside what a Claude Code plugin can enforce on its own.
 - **Honest by construction.** Each per-reviewer line in the Manager Summary is marked `[receipt-trusted]` or `[full report read]`, so you can see exactly where independent verification was cheap versus thorough.
 
 Net: the receipt saves tokens across fix-rerun cycles and multi-story runs (where reports would otherwise be reopened many times); on a trivial single-pass change it's roughly neutral — the deliberate cost of guaranteeing nothing merges unverified.
@@ -161,6 +161,7 @@ Net: the receipt saves tokens across fix-rerun cycles and multi-story runs (wher
 - ⚡ **Magnezone** (network) — Topology, reachability
 - 🧬 **Metagross** (architecture) — Design coherence
 - 💗 **Audino** (consumer) — Usability
+- 🌈 **Wobbuffet** (fullspectrum) — Standing cross-domain pass: whole ADR catalog, seams between reviewer lanes, on every review above TRIVIAL
 
 **Adversarial:**
 - 👻 **Gengar** (redteam) — Attacks the built change at review time
@@ -225,8 +226,8 @@ Auto-generated by `/devops:story`. Contains:
 
 1. Story-implementer reads all ADRs, extracts frontmatter
 2. Builds catalog in `.governance-state.json`
-3. Each reviewer reads only **its own domain's slice** of the catalog (200 tokens each)
-4. The **Manager reads the whole catalog once** and owns **cross-domain** collision detection — it checks the diff against ADRs *outside* each reviewer's lane (a violation no single-lane reviewer would see), so the per-review cost is `1 × whole + N × slice`, not `N × whole`. `/ship-check` re-runs a whole-catalog-vs-diff pass as the pre-merge backstop.
+3. Each domain reviewer reads only **its own domain's slice** of the catalog (200 tokens each)
+4. The **`fullspectrum-reviewer` reads the whole catalog once**, unfiltered, and owns **cross-domain** collision detection as a real reviewer with its own dated report — it checks the diff against ADRs *outside* each domain reviewer's lane (a violation no single-lane reviewer would see) and hunts non-ADR gaps at the seams between lanes, so the per-review cost is `1 × whole + N × slice`, not `N × whole`. `/ship-check` re-runs a whole-catalog-vs-diff pass as the pre-merge backstop.
 
 **Result:** 6k tokens per review (**76% reduction**)
 
@@ -412,7 +413,7 @@ From `docs/PRINCIPLES.md`:
 /engineer:ship 'add rate limiting to the login endpoint'
 ```
 
-**Domain reviewers:** ⚙️ Klinklang (api-contract — versioning/back-compat) · 🗄️ Registeel (data-model — schema/migrations) · 🛡️ Aegislash (appsec — authz/injection/secrets/deps) · 💨 Accelgor (performance) — plus the shared 🔷 Porygon (code), 👻 Gengar (red team), and 🧬 Metagross (architecture).
+**Domain reviewers:** ⚙️ Klinklang (api-contract — versioning/back-compat) · 🗄️ Registeel (data-model — schema/migrations) · 🛡️ Aegislash (appsec — authz/injection/secrets/deps) · 💨 Accelgor (performance) — plus the shared 🔷 Porygon (code), 🌈 Wobbuffet (fullspectrum — standing cross-domain pass), 👻 Gengar (red team), and 🧬 Metagross (architecture).
 
 **Protected paths** (`.governance.json`) default to `auth/`, `payments/`, `migrations/`, and public API/contract folders; **blocked commands** default to package publish and destructive SQL. The AWS write-whitelist is inert unless you actually run `aws`.
 

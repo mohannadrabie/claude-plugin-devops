@@ -43,13 +43,19 @@ const unlockMsg = (what, requires, days) =>
 // (Prevents the deadlock of a redteam report being blocked for want of a redteam report.)
 const GOV_SINK = /(^|\/)docs\/(reviews\/|decisions(-archive)?\.md|REVIEW_LOG\.md|STATE\.md|backlog\.md|manager-summary[^/]*$|conformance-triage[^/]*$|\.governance-state\.json)/i;
 
-// The file(s) a shell command WRITES to — redirections, tee, dd, sed -i. Heredoc bodies and quoted
-// strings are stripped FIRST so a report's prose (which may mention "database", "payments", "auth"…)
-// is never mistaken for a protected path: we gate on the target, not the payload.
-function writeTargets(cmd) {
+// Heredoc bodies and quoted strings, stripped so a command's PAYLOAD (a commit message, a report body,
+// a heredoc'd file) is never mistaken for the command's ACTION — e.g. a commit message that quotes
+// "terraform apply" in prose, or a report that mentions "database"/"payments", must not trip a gate
+// meant for the literal shell verb/target. Every check below gates on the sanitized command, not the raw one.
+function sanitize(cmd) {
   let c = cmd.replace(/<<-?\s*(['"]?)([A-Za-z_]\w*)\1[\s\S]*?\n[ \t]*\2\b/g, " ");  // drop heredoc bodies
   c = c.replace(/'[^']*'/g, " '' ").replace(/"[^"]*"/g, ' "" ');                     // drop quoted content
-  c = c.replace(/\\/g, "/");
+  return c;
+}
+
+// The file(s) a shell command WRITES to — redirections, tee, dd, sed -i.
+function writeTargets(cmd) {
+  let c = sanitize(cmd).replaceAll("\\", "/");
   const t = new Set();
   for (const m of c.matchAll(/>>?\s*(?![&\d])([^\s;|&()<>]+)/g)) t.add(m[1]);         // > file / >> file
   const tee = /\btee\b((?:\s+-\S+)*)((?:\s+[^\s;|&()<>]+)+)/.exec(c);                 // tee [opts] file…
@@ -62,6 +68,7 @@ function writeTargets(cmd) {
 
 if (tool === "Bash") {
   const cmd = String(input.command ?? "");
+  const scan = sanitize(cmd);  // heredoc bodies/quoted content stripped — gate on the command, not its payload
 
   // --- Universal human-only commands ---
   const rules = [
@@ -69,24 +76,27 @@ if (tool === "Bash") {
     [/terraform\s+apply|tofu\s+apply/, "apply never runs from a session. UNLOCK: run plan, present it; applies happen via CI/human."],
     [/git\s+push\s+.*--force/, "Force-push destroys evidence. UNLOCK: a normal push, or ask the human to force-push themselves."],
     [/aws\s+.*\b(delete-stack|delete-db|deregister-)/, "Stack/data deletion is human-only. UNLOCK: present the exact command for the human to run."],
+    [/gh\s+pr\s+merge/, "Merging a PR is human-only, same as terraform apply. UNLOCK: run /ship-check, then present the exact 'gh pr merge' command for the human to run."],
+    [/git\s+merge\s+(?!(origin|upstream)\/)/, "Merging a branch into another is human-only, same as terraform apply (merging FROM origin/upstream to sync your own branch is unaffected). UNLOCK: run /ship-check, then present the exact merge command for the human to run."],
+    [/git\s+push\s+(\S+\s+)?(HEAD:)?(main|master|trunk)\b/, "Pushing directly to the default branch is human-only, same as terraform apply. UNLOCK: run /ship-check, then present the exact push command for the human to run."],
     ...(Array.isArray(cfg.blockedCommands) ? cfg.blockedCommands.map(r => [new RegExp(r.pattern, "i"), (r.message ?? "blocked by project policy") + " UNLOCK: ask the human."]) : []),
   ];
-  for (const [re, msg] of rules) if (re.test(cmd)) block("BLOCKED (governance policy): " + msg);
+  for (const [re, msg] of rules) if (re.test(scan)) block("BLOCKED (governance policy): " + msg);
 
   // --- AWS write-whitelist: mutating aws calls only against whitelisted accounts/profiles/roles ---
-  const awsCall = /(^|[|;&]\s*|\s)aws\s+([a-z0-9-]+)\s+([a-z0-9-]+)/.exec(cmd);
+  const awsCall = /(^|[|;&]\s*|\s)aws\s+([a-z0-9-]+)\s+([a-z0-9-]+)/.exec(scan);
   if (awsCall) {
     const action = awsCall[3];
-    const readOnly = /^(describe|get|list|ls|lookup|search|scan|query|select|filter|head|tail|cat|view|read|show|count|sample|wait|help|validate|estimate|detect|preview|test)/.test(action) || /--dry-?run/.test(cmd);
+    const readOnly = /^(describe|get|list|ls|lookup|search|scan|query|select|filter|head|tail|cat|view|read|show|count|sample|wait|help|validate|estimate|detect|preview|test)/.test(action) || /--dry-?run/.test(scan);
     if (!readOnly) {
       // profile: --profile X or inline AWS_PROFILE=X; else "default"
-      const prof = (/--profile[= ]([\w-]+)/.exec(cmd) ?? /AWS_PROFILE=([\w-]+)/.exec(cmd))?.[1] ?? "default";
+      const prof = (/--profile[= ]([\w-]+)/.exec(scan) ?? /AWS_PROFILE=([\w-]+)/.exec(scan))?.[1] ?? "default";
       const profileOk = PROFILES.has(prof);
       // any 12-digit account id appearing (ARNs, --account-id...) must be whitelisted
-      const ids = [...cmd.matchAll(/\b(\d{12})\b/g)].map(m => m[1]);
+      const ids = [...scan.matchAll(/\b(\d{12})\b/g)].map(m => m[1]);
       const badId = ids.find(id => !ACCOUNTS.has(id));
       // role ARNs: --role-arn X or inline AWS_ROLE_ARN=X
-      const roleArn = (/--role-arn[= ](['"]?)(arn:aws:iam::[^'"\s]+)\1/.exec(cmd) ?? /AWS_ROLE_ARN=(['"]?)(arn:aws:iam::[^'"\s]+)\1/.exec(cmd))?.[2];
+      const roleArn = (/--role-arn[= ](['"]?)(arn:aws:iam::[^'"\s]+)\1/.exec(scan) ?? /AWS_ROLE_ARN=(['"]?)(arn:aws:iam::[^'"\s]+)\1/.exec(scan))?.[2];
       const roleOk = !roleArn || ROLES.has(roleArn);
 
       if (!profileOk) block(

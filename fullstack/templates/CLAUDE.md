@@ -21,6 +21,9 @@ Review ceremony scales with risk per `docs/PRINCIPLES.md`:
 - Protected paths (IAM, network, auth, payments, migrations, public API), prod-facing, security-relevant.
 - `redteam` (adversarial) + the relevant domain reviewer(s). A change spanning infra **and** app gets one reviewer per side, in parallel.
 
+### Every tier above TRIVIAL
+- `fullspectrum-reviewer` always joins the domain reviewer(s) — the standing cross-domain pass that reads the WHOLE ADR catalog (not a domain slice) and catches what falls in the seams between lanes. It doesn't count against the "never more than two reviewers" cap (PRINCIPLES.md rule 9).
+
 ## Workflow Loop
 
 **Primary command: `/fullstack:ship <story>`** — the **Manager (Alakazam) conducts** the full loop, invoking each agent (across both domains, by what the change touches) and speaking to you at every gate:
