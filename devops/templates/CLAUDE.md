@@ -30,6 +30,9 @@ Review ceremony scales with risk per `docs/PRINCIPLES.md`:
   - `security-reviewer` for IAM/network/security modules
   - `consumer-reviewer` for self-service ADR features
 
+### Every tier above TRIVIAL
+- `fullspectrum-reviewer` always joins the domain reviewer(s) — the standing cross-domain pass that reads the WHOLE ADR catalog (not a domain slice) and catches what falls in the seams between lanes. It doesn't count against the "never more than two reviewers" cap (PRINCIPLES.md rule 9).
+
 ## Review Ceremony
 
 All reviews follow `docs/PRINCIPLES.md`:

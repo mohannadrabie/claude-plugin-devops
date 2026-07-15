@@ -18,4 +18,6 @@ First, **`node docs/adr-cache.mjs --ensure`** (builds/refreshes the ADR catalog 
 6. **Truthfulness:** CHANGELOG / REVIEW_LOG.md / decisions.md / decisions-archive.md / STATE.md match reality (vs `git log`); any rows the handoff swept to the archive were resolved + past review-back and left no dangling superseded pointer.
 7. **Tree clean:** no uncommitted changes.
 
+**Persist the evidence.** Save the full pass/fail table + verdict verbatim to `docs/reviews/<scope>-shipcheck-<YYYY-MM-DD>.md`, with a `HEAD: <git rev-parse HEAD>` line so it's traceable to the exact commit checked (PRINCIPLES.md rule 10 — evidence, not claims); add a REVIEW_LOG row. `guard.mjs` blocks the agent from merging at all (`git merge` / `gh pr merge` / a push to the default branch — same absolute block as `terraform apply`, not conditioned on this file) — so this artifact isn't what unlocks the merge. It's the record the human merging, and any CI/branch-protection check you wire up outside this plugin, can point to as proof a real pre-merge check happened for this commit.
+
 Output: pass/fail table → SHIPPABLE or NOT SHIPPABLE (with exact unlock per blocker, per PRINCIPLES.md rule 2) → single next action.

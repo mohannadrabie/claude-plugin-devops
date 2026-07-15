@@ -21,6 +21,9 @@ Review ceremony scales with risk per `docs/PRINCIPLES.md`:
 - **Scope**: Protected paths (auth, payments, migrations, public API), security-relevant, prod-facing
 - **Process**: `redteam` (adversarial) + the relevant domain reviewer
 
+### Every tier above TRIVIAL
+- `fullspectrum-reviewer` always joins the domain reviewer(s) — the standing cross-domain pass that reads the WHOLE ADR catalog (not a domain slice) and catches what falls in the seams between lanes. It doesn't count against the "never more than two reviewers" cap (PRINCIPLES.md rule 9).
+
 ## Workflow Loop
 
 **Primary command: `/engineer:ship <story>`** — the **Manager (Alakazam) conducts** the full loop, invoking each agent and speaking to you at every gate:

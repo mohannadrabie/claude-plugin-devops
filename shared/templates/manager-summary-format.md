@@ -53,24 +53,26 @@ Each agent's own verdict enum differs; the Manager Summary's own `[SHIP | SHIP-W
 | Agent(s) | Enum (first value = clean) |
 |---|---|
 | code-reviewer, performance-reviewer | `SHIP` \| SHIP-AFTER-FIXES \| DO-NOT-SHIP |
-| security/network/appsec/api/data/architecture-reviewer | `APPROVE` \| APPROVE-WITH-CONDITIONS \| REWORK |
+| security/network/appsec/api/data/architecture-reviewer, fullspectrum-reviewer | `APPROVE` \| APPROVE-WITH-CONDITIONS \| REWORK |
 | redteam, challenger, consumer-reviewer | `go` \| no-go |
 | debugger | `FIXED` \| UNREPRODUCIBLE \| BLOCKED |
 | story-implementer | `BUILD-COMPLETE` \| BLOCKED |
 
+`fullspectrum-reviewer` is a standing line in **every** Manager Summary above TRIVIAL (rule 9) — it isn't optional the way a domain pick is; its absence from the Per-reviewer list is itself a shirked-gate finding.
+
 ## When to Use
 
 **Main session synthesizes inline:**
-- ONE reviewer ran
-- Verdict is SHIP or SHIP-WITH-CONDITIONS
+- ONE domain reviewer ran, alongside `fullspectrum-reviewer` (its standing partner — not counted as a second reviewer)
+- Both verdicts clean (SHIP/SHIP-WITH-CONDITIONS or APPROVE/APPROVE-WITH-CONDITIONS)
 - No findings marked as BLOCKER
 - No ADR violations
 
 **Spawn manager agent:**
-- Multiple reviewers ran (even if they agree)
-- ANY reviewer marked ANY finding as BLOCKER
+- More than one domain reviewer ran (even if they agree)
+- ANY reviewer — including `fullspectrum-reviewer` — marked ANY finding as BLOCKER
 - ANY reviewer marked ADR violation
-- Verdicts conflict (SHIP vs. REWORK)
+- Verdicts conflict (SHIP vs. REWORK, or domain reviewer vs. `fullspectrum-reviewer`)
 - Tier disagreement detected
 
 ## Example
@@ -83,6 +85,7 @@ Each agent's own verdict enum differs; the Manager Summary's own `[SHIP | SHIP-W
 **Per-reviewer:**
 - security-reviewer (Umbreon) → APPROVE-WITH-CONDITIONS → Fix IAM wildcard in terraform/modules/api/iam.tf:42 → `docs/reviews/api-security-2026-07-11.md` [full report read]
 - network-reviewer (Magnezone) → APPROVE → Clean, no reachability issues → `docs/reviews/api-network-2026-07-11.md` [receipt-trusted — not full-read]
+- fullspectrum-reviewer (Wobbuffet) → APPROVE → No cross-domain ADR collisions, no seam gaps found → `docs/reviews/api-fullspectrum-2026-07-11.md` [receipt-trusted — not full-read]
 
 **ADR Compliance:**
 - ADR-003 (S3 encryption) → COMPLIANT
